@@ -5,12 +5,12 @@ import { PageProvider } from "../context/PageContext"
 const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
         <PageProvider>
-            <div className="flex w-full h-full">
+            <div className="flex min-w-[100dvw] h-[100dvh]">
 
                 <SideBar />
-                <div className="flex flex-col h-full w-full">
+                <div className="flex flex-col h-full w-full pr-8">
                     <TopBar />
-                    <main className="flex-1 w-full bg-white overflow-y-auto">
+                    <main className="h-full w-full bg-white rounded-t-2xl overflow-y-auto">
                         {children}
                     </main>
                 </div>

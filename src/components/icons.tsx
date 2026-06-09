@@ -83,3 +83,69 @@ export const SettingsIcon = (props: React.SVGProps<SVGSVGElement>) => {
     </svg>
   );
 };
+
+export const ArrowLeftIcon = (props: React.SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path d="M15 18L9 12L15 6" />
+    </svg>
+  );
+};
+
+export const NotificationIcon = ({ hasNotification, ...props }: React.SVGProps<SVGSVGElement> & { hasNotification?: boolean }) => {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      {hasNotification && (
+        <circle cx="18" cy="6" r="3" fill="#FBBF24" stroke="currentColor" strokeWidth="1.5" />
+      )}
+    </svg>
+  );
+};
+
+export const WithdrawIcon = (props: React.SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <rect x="3" y="10" width="18" height="12" rx="2" />
+      <circle cx="12" cy="16" r="2" />
+      <path d="M7 16h.01" />
+      <path d="M17 16h.01" />
+      <path d="M12 10V2" />
+      <path d="m8 6 4-4 4 4" />
+    </svg>
+  );
+};
