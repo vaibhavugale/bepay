@@ -149,3 +149,155 @@ export const WithdrawIcon = (props: React.SVGProps<SVGSVGElement>) => {
     </svg>
   );
 };
+
+export const ArrowDownIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M12 5v14M19 12l-7 7-7-7"/>
+  </svg>
+);
+
+export const ArrowUpIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M12 19V5M5 12l7-7 7 7"/>
+  </svg>
+);
+
+export const SearchIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <circle cx="11" cy="11" r="8"/>
+    <path d="m21 21-4.3-4.3"/>
+  </svg>
+);
+
+export const FilterIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M3 6h18M6 12h12M10 18h4"/>
+  </svg>
+);
+
+export const CloseIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M18 6L6 18M6 6l12 12"/>
+  </svg>
+);
+
+export const ChevronDownIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M6 9l6 6 6-6"/>
+  </svg>
+);
+
+export const FolderUploadIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    <path d="M12 11v6"/>
+    <path d="M9 14l3-3 3 3"/>
+  </svg>
+);
+export const FileSuccessIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <path d="M14 2v6h6"/>
+    <circle cx="16" cy="16" r="6" fill="white" stroke="currentColor" />
+    <path d="M14 16l1.5 1.5L18 15" stroke="currentColor" strokeWidth="2" />
+  </svg>
+);
+
+export const FileErrorIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <path d="M14 2v6h6"/>
+    <circle cx="16" cy="16" r="6" fill="white" stroke="currentColor" />
+    <path d="M16 14v3" stroke="currentColor" strokeWidth="2" />
+    <path d="M16 19h.01" stroke="currentColor" strokeWidth="2" />
+  </svg>
+);
+
+export const CopyIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </svg>
+);
+
+export const BtcIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <circle cx="12" cy="12" r="12" fill="#F7931A"/>
+    <path d="M16.6 11.2C17 10.4 17.1 9.3 16.4 8.5C15.6 7.6 14.1 7.2 12.3 7.2H8.5V17H12.7C14.7 17 16.3 16.5 17.2 15.6C18.1 14.7 18.2 13.5 17.7 12.6C17.5 12 17.1 11.6 16.6 11.2ZM11 8.8H12.3C13.2 8.8 14.1 9 14.6 9.5C15 9.9 15.1 10.5 14.8 11.1C14.5 11.8 13.7 12 12.8 12H11V8.8ZM12.7 15.4H11V13.2H12.8C13.8 13.2 14.7 13.4 15.2 13.9C15.7 14.4 15.7 15 15.4 15.6C14.9 16.3 13.9 15.4 12.7 15.4Z" fill="white"/>
+  </svg>
+);
+
+export const EthIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <circle cx="12" cy="12" r="12" fill="#627EEA"/>
+    <path d="M11.8 5L7 12.8L11.8 15.6L16.6 12.8L11.8 5Z" fill="white" fillOpacity="0.6"/>
+    <path d="M11.8 5L7 12.8L11.8 10.5L16.6 12.8L11.8 5Z" fill="white"/>
+    <path d="M11.8 16.5L7 13.6L11.8 19L16.6 13.6L11.8 16.5Z" fill="white" fillOpacity="0.6"/>
+  </svg>
+);
+
+export const SolanaIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <circle cx="12" cy="12" r="12" fill="#000000"/>
+    <path d="M6 14.2H14.8L16.6 12.5H7.8L6 14.2Z" fill="#14F195"/>
+    <path d="M18 9.8H9.2L7.4 11.5H16.2L18 9.8Z" fill="#9945FF"/>
+    <path d="M6 18.6H14.8L16.6 16.9H7.8L6 18.6Z" fill="#14F195"/>
+  </svg>
+);
+
+export const TonIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <circle cx="12" cy="12" r="12" fill="#0098EA"/>
+    <path d="M12 5L6 11H10.5V18.5L18 9H13.5V5.5L12 5Z" fill="white"/>
+  </svg>
+);
+
+export const ContactBookIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+    <circle cx="12" cy="8" r="2.5" />
+    <path d="M8 15a4 4 0 0 1 8 0" />
+  </svg>
+);
+
+export const BitcoinDoodleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="64" height="64" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <g stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+      {/* Tilted background shadow/thickness */}
+      <path d="M 20 75 L 85 60 L 85 30" strokeWidth="6" />
+      {/* Tilted main rectangle */}
+      <path d="M 15 45 L 80 30 L 90 70 L 25 85 Z" fill="white" />
+      
+      {/* Inner corner brackets */}
+      <path d="M 25 50 L 25 55 L 30 55" />
+      <path d="M 70 38 L 75 38 L 75 43" />
+      <path d="M 33 75 L 33 80 L 38 80" />
+      <path d="M 80 60 L 80 65 L 75 65" />
+
+      {/* Center Bitcoin Circle */}
+      <circle cx="52.5" cy="57.5" r="14" fill="white" />
+      {/* Bitcoin B */}
+      <path d="M 50 48 L 50 67" />
+      <path d="M 54 48 L 54 67" />
+      <path d="M 48 51 L 55 51 C 58 51 58 55 55 55 C 59 55 59 60 55 60 L 48 60" />
+      <path d="M 48 55 L 54 55" />
+
+      {/* Nodes */}
+      {/* Top Left */}
+      <path d="M 35 40 L 32 25" />
+      <circle cx="30" cy="20" r="4" fill="white" />
+      
+      {/* Top Right */}
+      <path d="M 60 34 L 60 25 L 70 25 L 70 18" />
+      <circle cx="70" cy="13" r="4" fill="white" />
+      
+      {/* Far Left */}
+      <path d="M 18 55 L 10 55 L 10 45" />
+      <circle cx="10" cy="40" r="4" fill="white" />
+      
+      {/* Bottom */}
+      <path d="M 60 77 L 60 88" />
+      <circle cx="60" cy="93" r="4" fill="white" />
+    </g>
+  </svg>
+);

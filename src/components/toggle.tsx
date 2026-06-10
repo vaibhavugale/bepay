@@ -13,7 +13,7 @@ export const Toggle = ({ checked, onChange, className = "" }: ToggleProps) => {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-[28px] w-[50px] items-center rounded-lg transition-colors focus:outline-none ${
+      className={`relative inline-flex h-[28px] w-[50px] items-center rounded-lg transition-colors focus:outline-none cursor-pointer ${
         checked ? 'bg-blue-500' : 'bg-[#999999]'
       } ${className}`}
     >
