@@ -27,7 +27,7 @@ const TopBar = () => {
                     <Toggle checked={isSandbox} onChange={setIsSandbox} />
                 </div>
 
-                <button className="relative text-gray-300 hover:text-white transition-colors">
+                <button className="relative text-gray-300 hover:text-white transition-colors cursor-pointer">
                     <NotificationIcon className="w-8 h-8" hasNotification={true} />
                 </button>
 

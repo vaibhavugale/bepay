@@ -3,40 +3,37 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { HomeIcon, PaymentHistoryIcon, PaymentLinkIcon, SettingsIcon, ArrowLeftIcon, WithdrawIcon } from "./icons"
+import { HomeIcon, PaymentHistoryIcon, PaymentLinkIcon, SettingsIcon, ArrowLeftIcon } from "./icons"
 import { usePage } from "../context/PageContext"
 import { useEffect, useState } from "react"
+
+const menu = [
+    {
+        label: "Home",
+        route: "/",
+        icon: <HomeIcon />
+    },
+    {
+        label: "Payment History",
+        route: "/payment-history",
+        icon: <PaymentHistoryIcon />
+    },
+    {
+        label: "Payment Link",
+        route: "/payment-link",
+        icon: <PaymentLinkIcon />
+    },
+    {
+        label: "Settings",
+        route: "/settings",
+        icon: <SettingsIcon />
+    }
+];
 
 const SideBar = () => {
     const pathname = usePathname();
     const { setLabel } = usePage();
     const [isExpanded, setIsExpanded] = useState(true);
-
-
-    const menu = [
-        {
-            label: "Home",
-            route: "/",
-            icon: <HomeIcon />
-
-        },
-        {
-            label: "Payment History",
-            route: "/payment-history",
-            icon: <PaymentHistoryIcon />
-        },
-        {
-            label: "Payment Link",
-            route: "/payment-link",
-            icon: <PaymentLinkIcon />
-        },
-        {
-            label: "Settings",
-            route: "/settings",
-            icon: <SettingsIcon />
-        }
-
-    ]
 
     useEffect(() => {
         // Automatically sync the correct label on initial load or URL change
