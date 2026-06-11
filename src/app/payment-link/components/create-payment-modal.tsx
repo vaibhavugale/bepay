@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Modal } from "../../../components/modal";
 import { Toggle } from "../../../components/toggle";
-import { ChevronDownIcon, BtcIcon, EthIcon, SolanaIcon, TonIcon, ContactBookIcon, BitcoinDoodleIcon, CopyIcon, FileSuccessIcon } from "../../../components/icons";
+import { ChevronDownIcon, BtcIcon, EthIcon, SolanaIcon, TonIcon, CopyIcon, FileSuccessIcon } from "../../../components/icons";
 import { addPaymentLink } from "../../../lib/api";
 
 interface CreatePaymentModalProps {
@@ -12,63 +12,100 @@ interface CreatePaymentModalProps {
 }
 
 const CRYPTO_OPTIONS = [
-  { id: "btc-net", name: "BTC (Bitcoin network)", icon: <BtcIcon className="w-5 h-5" /> },
+  { id: "usdc", name: "USDC", icon: <EthIcon className="w-5 h-5" /> }, // using eth icon as placeholder
+  { id: "usdt", name: "USDT", icon: <EthIcon className="w-5 h-5" /> },
   { id: "btc", name: "BTC", icon: <BtcIcon className="w-5 h-5" /> },
   { id: "eth", name: "Ethereum", icon: <EthIcon className="w-5 h-5" /> },
   { id: "sol", name: "Solana", icon: <SolanaIcon className="w-5 h-5" /> },
-  { id: "ton", name: "TON", icon: <TonIcon className="w-5 h-5" /> },
+];
+
+const NETWORK_OPTIONS = [
+  { id: "polygon", name: "Polygon" },
+  { id: "ethereum", name: "Ethereum" },
+  { id: "base", name: "Base" },
+  { id: "solana", name: "Solana" },
 ];
 
 export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePaymentModalProps) => {
   const [step, setStep] = useState<'form' | 'success'>('form');
-  const [selectedCryptos, setSelectedCryptos] = useState<typeof CRYPTO_OPTIONS[0][]>([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  const [selectedToken, setSelectedToken] = useState(CRYPTO_OPTIONS[0]);
+  const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
+  
+  const [selectedNetwork, setSelectedNetwork] = useState(NETWORK_OPTIONS[0]);
+  const [isNetworkDropdownOpen, setIsNetworkDropdownOpen] = useState(false);
+  
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [partialPayments, setPartialPayments] = useState(false);
   const [price, setPrice] = useState("");
   const [linkFor, setLinkFor] = useState("");
-  const [isCustomerDetailsOpen, setIsCustomerDetailsOpen] = useState(false);
-  const [customerName, setCustomerName] = useState("");
-  const [customerMobile, setCustomerMobile] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
+  
+  const [referenceId, setReferenceId] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [description, setDescription] = useState("");
+
   const [showCopiedToast, setShowCopiedToast] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [createdUrl, setCreatedUrl] = useState("");
+
+  const tokenDropdownRef = useRef<HTMLDivElement>(null);
+  const networkDropdownRef = useRef<HTMLDivElement>(null);
 
   // Reset step when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
-      setTimeout(() => setStep('form'), 300);
+      setTimeout(() => {
+        setStep('form');
+        setPrice("");
+        setLinkFor("");
+        setReferenceId("");
+        setExpiryDate("");
+        setDescription("");
+        setSelectedToken(CRYPTO_OPTIONS[0]);
+        setSelectedNetwork(NETWORK_OPTIONS[0]);
+      }, 300);
       setShowCopiedToast(false);
     }
   }, [isOpen]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
+      if (tokenDropdownRef.current && !tokenDropdownRef.current.contains(event.target as Node)) {
+        setIsTokenDropdownOpen(false);
+      }
+      if (networkDropdownRef.current && !networkDropdownRef.current.contains(event.target as Node)) {
+        setIsNetworkDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isValid = selectedCryptos.length > 0 && price.trim() !== "" && linkFor.trim() !== "";
+  const isAmountValid = !isNaN(parseFloat(price)) && parseFloat(price) > 0;
+  let isExpiryValid = true;
+  if (expiryDate) {
+    const expiry = new Date(expiryDate).getTime();
+    const now = new Date().getTime();
+    if (expiry <= now) isExpiryValid = false;
+  }
+  
+  const isValid = price.trim() !== "" && linkFor.trim() !== "" && isAmountValid && isExpiryValid;
 
   const handleCreate = async () => {
     if (!isValid) return;
     setIsCreating(true);
     
     try {
-      const isAllSelected = selectedCryptos.length === CRYPTO_OPTIONS.length;
-      
-      await addPaymentLink({
-        currency: isAllSelected ? "All currencies" : selectedCryptos[0].name,
+      const newLink = await addPaymentLink({
+        currency: selectedToken.name,
         amount: price,
         paymentTitle: linkFor,
-        network: selectedCryptos[0]?.name,
-        isMoreCurrency: !isAllSelected && selectedCryptos.length > 1,
+        network: selectedNetwork.name,
+        description,
+        expiryDate,
+        orderId: referenceId
       });
+      setCreatedUrl(newLink.invoiceUrl);
       setStep('success');
       onSuccess?.();
     } catch (e) {
@@ -79,7 +116,7 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText("0xdwdhwhdwhysuwyhduhwhxbhjabvxhsaghxahw827w8");
+    navigator.clipboard.writeText(createdUrl);
     setShowCopiedToast(true);
     setTimeout(() => setShowCopiedToast(false), 3000);
   };
@@ -98,67 +135,94 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
         isOpen={isOpen}
         onClose={onClose}
         position="center"
-        title={step === 'form' ? "Create Payment Tools" : ""}
+        title={step === 'form' ? "Create Payment Link" : ""}
       >
         {step === 'form' ? (
           <div className="flex flex-col gap-6 py-4 pb-8">
 
-        {/* Pay Currency */}
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Pay Currency</label>
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full flex items-center justify-between p-4 bg-[#F8F9FA] border border-transparent rounded-xl text-left focus:outline-none focus:border-gray-300 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                {selectedCryptos.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {selectedCryptos.map(crypto => (
-                      <div key={crypto.id} className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2 py-1">
-                        {React.cloneElement(crypto.icon as React.ReactElement<{ className?: string }>, { className: "w-4 h-4" })}
-                        <span className="text-xs font-medium text-gray-900">{crypto.name}</span>
-                      </div>
-                    ))}
+        <div className="flex gap-4">
+          {/* Pay Currency */}
+          <div className="flex flex-col gap-2 flex-1">
+            <label className="text-sm font-medium text-gray-700">Token</label>
+            <div className="relative" ref={tokenDropdownRef}>
+              <button
+                onClick={() => setIsTokenDropdownOpen(!isTokenDropdownOpen)}
+                className="w-full flex items-center justify-between p-4 bg-[#F8F9FA] border border-transparent rounded-xl text-left focus:outline-none focus:border-gray-300 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2 py-1">
+                    {React.cloneElement(selectedToken.icon as React.ReactElement<{ className?: string }>, { className: "w-4 h-4" })}
+                    <span className="text-xs font-medium text-gray-900">{selectedToken.name}</span>
                   </div>
-                ) : (
-                  <div className="flex flex-col">
-                    <span className="text-sm text-gray-900">All currencies</span>
-                    <span className="text-xs text-gray-500">Please choose any supported crypto for payment</span>
-                  </div>
-                )}
-              </div>
-              <ChevronDownIcon className={`w-5 h-5 text-gray-500 shrink-0 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
-            </button>
+                </div>
+                <ChevronDownIcon className={`w-5 h-5 text-gray-500 shrink-0 transition-transform ${isTokenDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
 
-            {isDropdownOpen && (
-              <div className="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden max-h-60 overflow-y-auto">
-                {CRYPTO_OPTIONS.map((option) => {
-                  const isSelected = selectedCryptos.some(c => c.id === option.id);
-                  return (
-                    <button
-                      key={option.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedCryptos(prev => prev.filter(c => c.id !== option.id));
-                        } else {
-                          setSelectedCryptos(prev => [...prev, option]);
-                        }
-                      }}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        {option.icon}
+              {isTokenDropdownOpen && (
+                <div className="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden max-h-60 overflow-y-auto">
+                  {CRYPTO_OPTIONS.map((option) => {
+                    const isSelected = selectedToken.id === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => {
+                          setSelectedToken(option);
+                          setIsTokenDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          {option.icon}
+                          <span className={`text-sm font-medium ${isSelected ? 'text-black' : 'text-gray-900'}`}>{option.name}</span>
+                        </div>
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'bg-black border-black' : 'border-gray-300 bg-white'}`}>
+                          {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Network */}
+          <div className="flex flex-col gap-2 flex-1">
+            <label className="text-sm font-medium text-gray-700">Network</label>
+            <div className="relative" ref={networkDropdownRef}>
+              <button
+                onClick={() => setIsNetworkDropdownOpen(!isNetworkDropdownOpen)}
+                className="w-full flex items-center justify-between p-4 bg-[#F8F9FA] border border-transparent rounded-xl text-left focus:outline-none focus:border-gray-300 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-900">{selectedNetwork.name}</span>
+                </div>
+                <ChevronDownIcon className={`w-5 h-5 text-gray-500 shrink-0 transition-transform ${isNetworkDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {isNetworkDropdownOpen && (
+                <div className="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden max-h-60 overflow-y-auto">
+                  {NETWORK_OPTIONS.map((option) => {
+                    const isSelected = selectedNetwork.id === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => {
+                          setSelectedNetwork(option);
+                          setIsNetworkDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left cursor-pointer"
+                      >
                         <span className={`text-sm font-medium ${isSelected ? 'text-black' : 'text-gray-900'}`}>{option.name}</span>
-                      </div>
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-black border-black' : 'border-gray-300 bg-white'}`}>
-                        {isSelected && <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'bg-black border-black' : 'border-gray-300 bg-white'}`}>
+                          {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -207,69 +271,36 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
                 <span className="text-sm text-gray-700">Partial Payments</span>
                 <Toggle checked={partialPayments} onChange={setPartialPayments} />
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Reference ID</span>
-                <button className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">+ Add</button>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Expiry Date</span>
-                <button className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">+ Add</button>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Internal Notes</span>
-                <button className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">+ Add</button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Customer Details */}
-        <div className="flex flex-col">
-          <div className="flex items-center justify-between py-2">
-            <span className="text-sm font-medium text-gray-700">Customer Details</span>
-            <button
-              onClick={() => setIsCustomerDetailsOpen(!isCustomerDetailsOpen)}
-              className={`text-sm font-medium transition-colors ${isCustomerDetailsOpen ? 'text-[#c55d5d] hover:text-red-700' : 'text-gray-900 hover:text-gray-600'}`}
-            >
-              {isCustomerDetailsOpen ? 'Delete' : '+ Add'}
-            </button>
-          </div>
-
-          {isCustomerDetailsOpen && (
-            <div className="flex flex-col gap-4 p-4 mt-2 border border-gray-100 rounded-xl shadow-sm">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700">Name</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Arshi Kohli"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full p-4 bg-[#F8F9FA] rounded-xl text-sm text-gray-900 placeholder:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                  />
-                  <ContactBookIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700">Mobile Number</label>
+              
+              <div className="flex flex-col gap-2 mt-2">
+                <label className="text-sm font-medium text-gray-700">Reference ID</label>
                 <input
                   type="text"
-                  placeholder="927969237982"
-                  value={customerMobile}
-                  onChange={(e) => setCustomerMobile(e.target.value)}
-                  className="w-full p-4 bg-[#F8F9FA] rounded-xl text-sm text-gray-900 placeholder:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  placeholder="e.g. ORD-1234"
+                  value={referenceId}
+                  onChange={(e) => setReferenceId(e.target.value)}
+                  className="w-full p-3 bg-[#F8F9FA] rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
                 />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700">Email</label>
+                <label className="text-sm font-medium text-gray-700">Expiry Date</label>
                 <input
-                  type="email"
-                  placeholder="aryhhdiuw@gmail.com"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full p-4 bg-[#F8F9FA] rounded-xl text-sm text-gray-900 placeholder:text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  type="datetime-local"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className="w-full p-3 bg-[#F8F9FA] rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                />
+                {!isExpiryValid && <span className="text-xs text-red-500">Expiry must be in the future.</span>}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">Internal Notes / Description</label>
+                <textarea
+                  placeholder="Details about this payment"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full p-3 bg-[#F8F9FA] rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 resize-none h-20"
                 />
               </div>
             </div>
@@ -289,7 +320,7 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
             {isCreating ? (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
             ) : (
-              "Create"
+              "Create Payment Link"
             )}
           </button>
         </div>
@@ -319,20 +350,15 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
                 <div className="flex flex-col gap-1">
                   <span className="text-sm text-gray-500">Total Amount</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xl font-bold text-gray-900">{price}</span>
-                    {selectedCryptos.length > 0 && (
-                      <div className="flex items-center gap-1">
-                        {selectedCryptos.map(crypto => (
-                          <div key={crypto.id} className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center" title={crypto.name}>
-                            {React.cloneElement(crypto.icon as React.ReactElement<{ className?: string }>, { className: "w-4 h-4" })}
-                          </div>
-                        ))}
+                    <span className="text-xl font-bold text-gray-900">{price} {selectedToken.name}</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center" title={selectedToken.name}>
+                        {React.cloneElement(selectedToken.icon as React.ReactElement<{ className?: string }>, { className: "w-4 h-4" })}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <span className="text-red-500 absolute -top-2 right-4 text-xs font-bold">-</span>
                   <span className="text-sm text-gray-400">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
               </div>
@@ -341,7 +367,7 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
               <div className="flex flex-col gap-2">
                 <span className="text-sm text-gray-500">Link</span>
                 <div className="flex items-center justify-between p-4 bg-[#F8F9FA] border border-gray-100 rounded-xl">
-                  <span className="text-sm text-gray-900 break-all pr-4">0xdwdhwhdwhysuwyhduhwhxbhjabvxhsaghxahw827w8</span>
+                  <span className="text-sm text-gray-900 break-all pr-4">{createdUrl}</span>
                   <button onClick={handleCopy} className="text-gray-500 hover:text-black transition-colors shrink-0 cursor-pointer">
                     <CopyIcon className="w-5 h-5" />
                   </button>
@@ -350,14 +376,14 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
 
               {/* Actions */}
               <div className="flex flex-col gap-3 mt-4">
-                <button className="w-full py-4 bg-black text-white font-medium rounded-full hover:bg-gray-800 transition-colors cursor-pointer">
-                  Share Via Other Apps
+                <button onClick={handleCopy} className="w-full py-4 bg-black text-white font-medium rounded-full hover:bg-gray-800 transition-colors cursor-pointer">
+                  Copy Link
                 </button>
                 <button 
                   onClick={onClose}
                   className="w-full py-3 text-sm font-medium text-gray-600 hover:text-black transition-colors cursor-pointer"
                 >
-                  I'll do it later
+                  Close
                 </button>
               </div>
             </div>

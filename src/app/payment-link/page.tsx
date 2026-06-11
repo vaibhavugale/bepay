@@ -11,6 +11,7 @@ import { FilterModal } from "../../components/filter-modal";
 import { Input } from "../../components/input";
 import { Select } from "../../components/select";
 import { PaymentLinkRow, getPaymentLinks } from "../../lib/api";
+import { useRouter } from "next/navigation";
 
 const COLUMNS: Column<PaymentLinkRow>[] = [
   {
@@ -87,6 +88,7 @@ const COLUMNS: Column<PaymentLinkRow>[] = [
 import { CreatePaymentModal } from "./components/create-payment-modal";
 
 export default function PaymentLinkPage() {
+  const router = useRouter();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [data, setData] = useState<PaymentLinkRow[]>([]);
@@ -149,7 +151,11 @@ export default function PaymentLinkPage() {
               Loading payment links...
             </div>
           ) : (
-            <Table data={data} columns={COLUMNS} />
+            <Table 
+              data={data} 
+              columns={COLUMNS} 
+              onRowClick={(row) => router.push(`/payment-link/${row.invoiceId}`)}
+            />
           )}
         </div>
       </Layout>
