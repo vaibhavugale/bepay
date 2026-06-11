@@ -4,7 +4,7 @@ import Layout from "../../components/layout";
 import { Table, Column } from "../../components/table";
 import { Filters } from "../../components/filters";
 import { SearchBar } from "../../components/search-bar";
-import { SearchIcon, ArrowDownIcon, ArrowUpIcon, FolderUploadIcon, FileSuccessIcon, FileErrorIcon } from "../../components/icons";
+import { SearchIcon, ArrowDownIcon, ArrowUpIcon, CloseIcon } from "../../components/icons";
 import { Button } from "../../components/button";
 
 import { PaymentRow, getPayments } from "../../lib/api";
@@ -37,14 +37,18 @@ const COLUMNS: Column<PaymentRow>[] = [
   },
   {
     header: "Status",
-    cell: (row) => (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-bold text-white tracking-wide ${row.status === "ACTIVE" ? "bg-[#459164]" : "bg-[#c55d5d]"
-          }`}
-      >
-        {row.status}
-      </span>
-    ),
+    cell: (row) => {
+      let bg = "bg-gray-500";
+      if (row.status === "Confirmed") bg = "bg-[#459164]";
+      if (row.status === "Pending") bg = "bg-yellow-500";
+      if (row.status === "Failed") bg = "bg-[#c55d5d]";
+      if (row.status === "Expired") bg = "bg-gray-400";
+      return (
+        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white tracking-wide ${bg}`}>
+          {row.status}
+        </span>
+      );
+    },
   },
   {
     header: (
@@ -66,22 +70,31 @@ const COLUMNS: Column<PaymentRow>[] = [
 
 import { Modal } from "../../components/modal";
 import { FilterModal } from "../../components/filter-modal";
-import { Input } from "../../components/input";
-import { Select } from "../../components/select";
 
 export default function PaymentHistoryPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [data, setData] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isExportOpen, setIsExportOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<"PDF" | "CSV" | "XLS" | null>(null);
-  const [exportStatus, setExportStatus] = useState<"idle" | "success" | "error">("idle");
+  
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
-  const loadData = async (filters?: Record<string, string>) => {
+  // Detail Modal state
+  const [selectedTx, setSelectedTx] = useState<PaymentRow | null>(null);
+
+  const loadData = async (query: string, filters: Record<string, string>) => {
     setLoading(true);
     try {
-      const result = await getPayments(filters);
+      const combinedFilters = { ...filters };
+      if (query) combinedFilters.search = query;
+      const result = await getPayments(combinedFilters);
       setData(result);
+      setCurrentPage(1); // Reset to first page on new search/filter
     } catch (e) {
       console.error(e);
     } finally {
@@ -89,62 +102,102 @@ export default function PaymentHistoryPage() {
     }
   };
 
+  // Debounced search
   useEffect(() => {
-    loadData();
-  }, []);
+    const timer = setTimeout(() => {
+      loadData(searchQuery, activeFilters);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeFilters]);
 
   const handleApplyFilters = (values: Record<string, string>) => {
-    loadData(values);
+    setActiveFilters(values);
   };
 
-  // Handler to reset status when modal is closed
-  const handleCloseExport = () => {
-    setIsExportOpen(false);
-    setTimeout(() => {
-      setExportStatus("idle");
-    }, 300); // Reset after modal close animation
+  // Pagination logic
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const paginatedData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(p => p - 1);
   };
 
-  const handleExportClick = () => {
-    // Simulate export - randomly succeed or fail for demonstration
-    const isSuccess = Math.random() > 0.5;
-    setExportStatus(isSuccess ? "success" : "error");
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(p => p + 1);
+  };
+
+  const handleRowClick = (row: PaymentRow) => {
+    setSelectedTx(row);
   };
 
   return (
     <main className="w-full h-screen">
       <Layout>
-        <div className="p-8 w-full">
-          <div className="flex items-center justify-between mb-8">
+        <div className="p-8 w-full flex flex-col h-full">
+          <div className="flex items-center justify-between mb-8 flex-shrink-0">
             <h1 className="text-2xl font-bold text-gray-900">Payment History</h1>
 
             <div className="flex items-center gap-3">
               <SearchBar
                 theme="light"
-                placeholder="Search"
+                placeholder="Search by ID or Order"
                 icon={<SearchIcon className="w-5 h-5 text-gray-400" />}
                 containerClassName="w-[280px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
 
               <Filters onClick={() => setIsFilterOpen(true)} />
-
-              <Button 
-                className="!bg-[#282a2e] !text-white hover:!bg-[#3a3d42] !rounded-lg !px-5"
-                onClick={() => setIsExportOpen(true)}
-              >
-                Export
-              </Button>
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-20 text-gray-500">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mr-3"></div>
-              Loading payments...
-            </div>
-          ) : (
-            <Table data={data} columns={COLUMNS} />
-          )}
+          <div className="flex-1 overflow-auto bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col">
+            {loading ? (
+              <div className="flex items-center justify-center py-20 text-gray-500">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mr-3"></div>
+                Loading payments...
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto">
+                  <Table 
+                    data={paginatedData} 
+                    columns={COLUMNS} 
+                    onRowClick={handleRowClick}
+                    className="border-none shadow-none rounded-none"
+                  />
+                </div>
+                
+                {/* Pagination Controls */}
+                {data.length > 0 && (
+                  <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                    <span className="text-sm text-gray-600 font-medium">
+                      Showing {Math.min(currentPage * itemsPerPage, data.length)} of {data.length} entries
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        onClick={handlePrevPage} 
+                        disabled={currentPage === 1}
+                        className={`!px-4 !py-2 !rounded-lg text-sm font-semibold border ${currentPage === 1 ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'}`}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-sm font-bold px-3 text-gray-800">
+                        Page {currentPage} of {totalPages || 1}
+                      </span>
+                      <Button 
+                        onClick={handleNextPage} 
+                        disabled={currentPage === totalPages || totalPages === 0}
+                        className={`!px-4 !py-2 !rounded-lg text-sm font-semibold border ${currentPage === totalPages || totalPages === 0 ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'}`}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </Layout>
 
@@ -152,6 +205,7 @@ export default function PaymentHistoryPage() {
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         onApply={handleApplyFilters}
+        onClear={() => handleApplyFilters({})}
         fields={[
           {
             type: 'select',
@@ -159,106 +213,61 @@ export default function PaymentHistoryPage() {
             label: 'Status',
             options: [
               { value: '', label: 'All Statuses' },
-              { value: 'ACTIVE', label: 'Active' },
-              { value: 'EXPIRED', label: 'Expired' }
-            ]
-          },
-          {
-            type: 'select',
-            name: 'fixedRate',
-            label: 'Fixed Rate',
-            options: [
-              { value: '', label: 'Choose' },
-              { value: 'YES', label: 'Yes' },
-              { value: 'NO', label: 'No' }
-            ]
-          },
-          {
-            type: 'input',
-            name: 'payinAddress',
-            label: 'Payin address',
-            placeholder: 'Enter Address'
-          },
-          {
-            type: 'input',
-            name: 'payingHash',
-            label: 'Paying hash',
-            placeholder: 'Enter hash'
-          },
-          {
-            type: 'select',
-            name: 'outcomeCurrency',
-            label: 'Outcome currency',
-            options: [
-              { value: '', label: 'Choose Currency' },
-              { value: 'USD', label: 'USD' },
-              { value: 'GBP', label: 'GBP' }
+              { value: 'Pending', label: 'Pending' },
+              { value: 'Confirmed', label: 'Confirmed' },
+              { value: 'Failed', label: 'Failed' },
+              { value: 'Expired', label: 'Expired' }
             ]
           }
         ]}
       />
 
+      {/* Transaction Detail Modal */}
       <Modal
-        isOpen={isExportOpen}
-        onClose={handleCloseExport}
+        isOpen={!!selectedTx}
+        onClose={() => setSelectedTx(null)}
         position="center"
+        title="Transaction Details"
       >
-        <div className="flex flex-col items-center justify-center p-12 min-h-[300px]">
-          {exportStatus === "idle" && (
-            <>
-              <FolderUploadIcon className="w-[72px] h-[72px] text-gray-800 mb-6" strokeWidth={1} />
-              
-              <h3 className="text-[22px] font-bold text-gray-900 mb-8">
-                Choose the format to export
-              </h3>
-
-              <div className="flex items-center gap-4 w-full mb-8">
-                {["PDF", "CSV", "XLS"].map((format) => (
-                  <button
-                    key={format}
-                    onClick={() => setExportFormat(format as any)}
-                    className={`flex-1 py-3.5 rounded-full border text-sm font-bold transition-all cursor-pointer ${
-                      exportFormat === format
-                        ? "border-black text-black bg-gray-50 shadow-sm"
-                        : "border-gray-200 text-gray-600 hover:border-gray-300"
-                    }`}
-                  >
-                    {format}
-                  </button>
-                ))}
+        {selectedTx && (
+          <div className="flex flex-col pb-6 min-w-[350px]">
+            <div className="flex flex-col gap-5">
+              <DetailRow label="Transaction ID" value={selectedTx.paymentId} />
+              <DetailRow label="Order Reference" value={selectedTx.orderId} />
+              {selectedTx.paymentTitle && (
+                <DetailRow label="Payment Title" value={selectedTx.paymentTitle} />
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <DetailRow label="Amount Received" value={selectedTx.amountReceived} />
+                <DetailRow label="Original Price" value={selectedTx.originalPrice} />
               </div>
-
-              <Button 
-                className="w-full !bg-black !text-white !rounded-full py-4 text-[15px] font-semibold"
-                onClick={handleExportClick}
-              >
-                Export
-              </Button>
-            </>
-          )}
-
-          {exportStatus === "success" && (
-            <div className="flex flex-col items-center py-6">
-              <FileSuccessIcon className="w-[84px] h-[84px] text-gray-800 mb-6" strokeWidth={1} />
-              <h3 className="text-[20px] font-bold text-gray-700 text-center">
-                Your file is exported successfully!
-              </h3>
+              <DetailRow label="Network" value="Ethereum" /> {/* Mocked Network */}
+              <DetailRow 
+                label="Status" 
+                value={
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold text-white tracking-wide ${
+                    selectedTx.status === "Confirmed" ? "bg-[#459164]" :
+                    selectedTx.status === "Pending" ? "bg-yellow-500" :
+                    selectedTx.status === "Failed" ? "bg-[#c55d5d]" : "bg-gray-400"
+                  }`}>
+                    {selectedTx.status}
+                  </span>
+                } 
+              />
+              <DetailRow label="Created At" value={`${selectedTx.createdDate} ${selectedTx.createdTime}`} />
             </div>
-          )}
-
-          {exportStatus === "error" && (
-            <div className="flex flex-col items-center py-6">
-              <FileErrorIcon className="w-[84px] h-[84px] text-gray-800 mb-6" strokeWidth={1} />
-              <h3 className="text-[20px] font-bold text-gray-700 text-center mb-1">
-                We couldn't export your file.
-              </h3>
-              <p className="text-[18px] font-medium text-gray-600 text-center">
-                Please try again later.
-              </p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </Modal>
     </main>
+  );
+}
+
+function DetailRow({ label, value }: { label: string, value: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-medium text-gray-500">{label}</span>
+      <div className="text-base font-semibold text-gray-900 break-words">{value}</div>
+    </div>
   );
 }

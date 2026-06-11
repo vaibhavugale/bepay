@@ -1,15 +1,23 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Layout from "../components/layout";
 import { Table, Column } from "../components/table";
-import { Filters } from "../components/filters";
-import { SearchBar } from "../components/search-bar";
-import { SearchIcon, ArrowDownIcon, ArrowUpIcon, FolderUploadIcon, FileSuccessIcon, FileErrorIcon } from "../components/icons";
+import { 
+  ArrowDownIcon, 
+  ArrowUpIcon, 
+  RefreshIcon, 
+  CheckCircleIcon, 
+  ClockIcon, 
+  XCircleIcon, 
+  DollarSignIcon, 
+  CalendarIcon, 
+  ExternalLinkIcon 
+} from "../components/icons";
 import { Button } from "../components/button";
-
 import { PaymentRow, getPayments } from "../lib/api";
 
-const COLUMNS: Column<PaymentRow>[] = [
+const RECENT_COLUMNS: Column<PaymentRow>[] = [
   { header: "Payment ID", accessorKey: "paymentId" },
   { header: "Order ID", accessorKey: "orderId" },
   { header: "Original Price", accessorKey: "originalPrice" },
@@ -37,50 +45,31 @@ const COLUMNS: Column<PaymentRow>[] = [
   },
   {
     header: "Status",
-    cell: (row) => (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-bold text-white tracking-wide ${row.status === "ACTIVE" ? "bg-[#459164]" : "bg-[#c55d5d]"
-          }`}
-      >
-        {row.status}
-      </span>
-    ),
+    cell: (row) => {
+      let bg = "bg-gray-500";
+      if (row.status === "Confirmed") bg = "bg-[#459164]";
+      if (row.status === "Pending") bg = "bg-yellow-500";
+      if (row.status === "Failed") bg = "bg-[#c55d5d]";
+      if (row.status === "Expired") bg = "bg-gray-400";
+      return (
+        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white tracking-wide ${bg}`}>
+          {row.status}
+        </span>
+      );
+    },
   },
-  {
-    header: (
-      <span>
-        Created/ Last <br /> Updated Date
-      </span>
-    ),
-    accessorKey: "createdDate",
-  },
-  {
-    header: (
-      <span>
-        Created/ Last <br /> Updated Time
-      </span>
-    ),
-    accessorKey: "createdTime",
-  },
+  { header: "Date", accessorKey: "createdDate" }
 ];
 
-import { Modal } from "../components/modal";
-import { FilterModal } from "../components/filter-modal";
-import { Input } from "../components/input";
-import { Select } from "../components/select";
-
-export default function Home() {
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+export default function Dashboard() {
   const [data, setData] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isExportOpen, setIsExportOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<"PDF" | "CSV" | "XLS" | null>(null);
-  const [exportStatus, setExportStatus] = useState<"idle" | "success" | "error">("idle");
+  const [dateRange, setDateRange] = useState("Last 7 Days");
 
-  const loadData = async (filters?: Record<string, string>) => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const result = await getPayments(filters);
+      const result = await getPayments();
       setData(result);
     } catch (e) {
       console.error(e);
@@ -91,174 +80,146 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [dateRange]);
 
-  const handleApplyFilters = (values: Record<string, string>) => {
-    loadData(values);
-  };
+  // Aggregate metrics
+  const totalReceived = data.reduce((sum, payment) => {
+    if (payment.status === "Confirmed") {
+      // Assuming amountReceived is formatted like "$1,000" or similar
+      const val = parseFloat(payment.amountReceived.replace(/[^0-9.-]+/g, ""));
+      return sum + (isNaN(val) ? 0 : val);
+    }
+    return sum;
+  }, 0);
 
-  // Handler to reset status when modal is closed
-  const handleCloseExport = () => {
-    setIsExportOpen(false);
-    setTimeout(() => {
-      setExportStatus("idle");
-    }, 300); // Reset after modal close animation
-  };
-
-  const handleExportClick = () => {
-    // Simulate export - randomly succeed or fail for demonstration
-    const isSuccess = Math.random() > 0.5;
-    setExportStatus(isSuccess ? "success" : "error");
-  };
+  const successfulPayments = data.filter(p => p.status === "Confirmed").length;
+  const expiredPayments = data.filter(p => p.status === "Expired" || p.status === "Failed").length;
+  const pendingPayments = data.filter(p => p.status === "Pending").length;
 
   return (
-    <main className="w-full h-screen">
+    <main className="w-full h-screen overflow-y-auto">
       <Layout>
         <div className="p-8 w-full">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
-
-            <div className="flex items-center gap-3">
-              <SearchBar
-                theme="light"
-                placeholder="Search"
-                icon={<SearchIcon className="w-5 h-5 text-gray-400" />}
-                containerClassName="w-[280px]"
-              />
-
-              <Filters onClick={() => setIsFilterOpen(true)} />
-
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-4 py-2 bg-white shadow-sm">
+                <CalendarIcon className="w-4 h-4 text-gray-500" />
+                <select 
+                  className="bg-transparent border-none outline-none text-sm font-medium text-gray-700 cursor-pointer"
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                >
+                  <option>Today</option>
+                  <option>Last 7 Days</option>
+                  <option>Last 30 Days</option>
+                  <option>All Time</option>
+                </select>
+              </div>
               <Button 
-                className="!bg-[#282a2e] !text-white hover:!bg-[#3a3d42] !rounded-lg !px-5"
-                onClick={() => setIsExportOpen(true)}
+                className="flex items-center gap-2 !bg-[#282a2e] !text-white hover:!bg-[#3a3d42] !rounded-lg !px-4"
+                onClick={loadData}
+                disabled={loading}
               >
-                Export
+                <RefreshIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
               </Button>
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-20 text-gray-500">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mr-3"></div>
-              Loading payments...
+          {/* Quick Nav Links */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <Link href="/payment-link" className="group flex items-center justify-between p-6 bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl shadow-md hover:shadow-lg transition-all border border-gray-800">
+              <div className="flex flex-col">
+                <span className="text-white font-bold text-lg mb-1">Create Payment Link</span>
+                <span className="text-gray-400 text-sm">Generate a new link to accept payments</span>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                <ExternalLinkIcon className="w-5 h-5 text-white" />
+              </div>
+            </Link>
+            
+            <Link href="/payment-history" className="group flex items-center justify-between p-6 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all border border-gray-200">
+              <div className="flex flex-col">
+                <span className="text-gray-900 font-bold text-lg mb-1">View Payment History</span>
+                <span className="text-gray-500 text-sm">Review all past and ongoing transactions</span>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                <ExternalLinkIcon className="w-5 h-5 text-gray-900" />
+              </div>
+            </Link>
+          </div>
+
+          {/* Metric Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <MetricCard 
+              title="Total Received" 
+              value={`$${totalReceived.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} 
+              icon={<DollarSignIcon className="w-6 h-6 text-[#459164]" />} 
+              trend="+12.5%" 
+              trendUp={true} 
+            />
+            <MetricCard 
+              title="Successful Payments" 
+              value={successfulPayments.toString()} 
+              icon={<CheckCircleIcon className="w-6 h-6 text-[#459164]" />} 
+            />
+            <MetricCard 
+              title="Pending Payments" 
+              value={pendingPayments.toString()} 
+              icon={<ClockIcon className="w-6 h-6 text-yellow-500" />} 
+            />
+            <MetricCard 
+              title="Failed / Expired" 
+              value={expiredPayments.toString()} 
+              icon={<XCircleIcon className="w-6 h-6 text-[#c55d5d]" />} 
+            />
+          </div>
+
+          {/* Recent Transactions */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-12">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">Recent Transactions</h2>
+              <Link href="/payment-history" className="text-sm font-semibold text-gray-600 hover:text-black transition-colors">
+                View all &rarr;
+              </Link>
             </div>
-          ) : (
-            <Table data={data} columns={COLUMNS} />
-          )}
+            {loading ? (
+              <div className="flex items-center justify-center py-20 text-gray-500">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mr-3"></div>
+                Loading recent transactions...
+              </div>
+            ) : data.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+                <p className="mb-4">No transactions found.</p>
+              </div>
+            ) : (
+              <Table data={data.slice(0, 5)} columns={RECENT_COLUMNS} />
+            )}
+          </div>
         </div>
       </Layout>
-
-      <FilterModal
-        isOpen={isFilterOpen}
-        onClose={() => setIsFilterOpen(false)}
-        onApply={handleApplyFilters}
-        fields={[
-          {
-            type: 'select',
-            name: 'status',
-            label: 'Status',
-            options: [
-              { value: '', label: 'All Statuses' },
-              { value: 'ACTIVE', label: 'Active' },
-              { value: 'EXPIRED', label: 'Expired' }
-            ]
-          },
-          {
-            type: 'select',
-            name: 'fixedRate',
-            label: 'Fixed Rate',
-            options: [
-              { value: '', label: 'Choose' },
-              { value: 'YES', label: 'Yes' },
-              { value: 'NO', label: 'No' }
-            ]
-          },
-          {
-            type: 'input',
-            name: 'payinAddress',
-            label: 'Payin address',
-            placeholder: 'Enter Address'
-          },
-          {
-            type: 'input',
-            name: 'payingHash',
-            label: 'Paying hash',
-            placeholder: 'Enter hash'
-          },
-          {
-            type: 'select',
-            name: 'outcomeCurrency',
-            label: 'Outcome currency',
-            options: [
-              { value: '', label: 'Choose Currency' },
-              { value: 'USD', label: 'USD' },
-              { value: 'GBP', label: 'GBP' }
-            ]
-          }
-        ]}
-      />
-
-      <Modal
-        isOpen={isExportOpen}
-        onClose={handleCloseExport}
-        position="center"
-      >
-        <div className="flex flex-col items-center justify-center p-12 min-h-[300px]">
-          {exportStatus === "idle" && (
-            <>
-              <FolderUploadIcon className="w-[72px] h-[72px] text-gray-800 mb-6" strokeWidth={1} />
-              
-              <h3 className="text-[22px] font-bold text-gray-900 mb-8">
-                Choose the format to export
-              </h3>
-
-              <div className="flex items-center gap-4 w-full mb-8">
-                {["PDF", "CSV", "XLS"].map((format) => (
-                  <button
-                    key={format}
-                    onClick={() => setExportFormat(format as any)}
-                    className={`flex-1 py-3.5 rounded-full border text-sm font-bold transition-all cursor-pointer ${
-                      exportFormat === format
-                        ? "border-black text-black bg-gray-50 shadow-sm"
-                        : "border-gray-200 text-gray-600 hover:border-gray-300"
-                    }`}
-                  >
-                    {format}
-                  </button>
-                ))}
-              </div>
-
-              <Button 
-                className="w-full !bg-black !text-white !rounded-full py-4 text-[15px] font-semibold"
-                onClick={handleExportClick}
-              >
-                Export
-              </Button>
-            </>
-          )}
-
-          {exportStatus === "success" && (
-            <div className="flex flex-col items-center py-6">
-              <FileSuccessIcon className="w-[84px] h-[84px] text-gray-800 mb-6" strokeWidth={1} />
-              <h3 className="text-[20px] font-bold text-gray-700 text-center">
-                Your file is exported successfully!
-              </h3>
-            </div>
-          )}
-
-          {exportStatus === "error" && (
-            <div className="flex flex-col items-center py-6">
-              <FileErrorIcon className="w-[84px] h-[84px] text-gray-800 mb-6" strokeWidth={1} />
-              <h3 className="text-[20px] font-bold text-gray-700 text-center mb-1">
-                We couldn't export your file.
-              </h3>
-              <p className="text-[18px] font-medium text-gray-600 text-center">
-                Please try again later.
-              </p>
-            </div>
-          )}
-        </div>
-      </Modal>
     </main>
+  );
+}
+
+function MetricCard({ title, value, icon, trend, trendUp }: { title: string, value: string, icon: React.ReactNode, trend?: string, trendUp?: boolean }) {
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+      <div className="flex justify-between items-start mb-4">
+        <div className="p-3 bg-gray-50 rounded-xl">
+          {icon}
+        </div>
+        {trend && (
+          <span className={`text-xs font-bold px-2 py-1 rounded-full ${trendUp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            {trend}
+          </span>
+        )}
+      </div>
+      <div>
+        <h3 className="text-sm font-medium text-gray-500 mb-1">{title}</h3>
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+      </div>
+    </div>
   );
 }
