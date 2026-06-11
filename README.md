@@ -45,12 +45,16 @@ A modern, responsive merchant dashboard built with Next.js 14 (App Router), Reac
    - *Decision*: Using a flat `PaymentLinkRow` model.
    - *Trade-off*: Makes frontend state management trivial for prototyping, but trades off database normalization. In production, a "Payment Link" would likely be a separate entity from "Transactions".
 
-## Completed and Incomplete Features
+
 
 ### Completed Features
-- Merchant Dashboard:
+- Merchant Dashboard
 - Payment History Table
 - Transaction Details:
 - Payment Link Creation Form:
 - Payment Link Success Screen:
 - Payment Link Detail Page:
+
+##  Incomplete Features
+- Merchant Dashboard UI is align with bepay dashboard, but there are some UI changes as compare to bepay dashboard
+
