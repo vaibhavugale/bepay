@@ -51,14 +51,16 @@ const COLUMNS: Column<PaymentLinkRow>[] = [
   {
     header: "Status",
     cell: (row) => {
-      let bgClass = "";
-      if (row.status === "COMPLETED") bgClass = "bg-[#459164]";
-      else if (row.status === "IN PROGRESS") bgClass = "bg-[#E68D25]";
-      else if (row.status === "FAILED") bgClass = "bg-[#c55d5d]";
+      let bgClass = "bg-gray-100 text-gray-800";
+      if (row.status === "ACTIVE") bgClass = "bg-[#EBF5FF] text-[#0066FF]";
+      else if (row.status === "COMPLETED") bgClass = "bg-[#E6F4EA] text-[#459164]";
+      else if (row.status === "IN PROGRESS") bgClass = "bg-[#FEF3C7] text-[#E68D25]";
+      else if (row.status === "FAILED") bgClass = "bg-[#FDE8E8] text-[#c55d5d]";
+      else if (row.status === "EXPIRED") bgClass = "bg-gray-100 text-gray-600";
       
       return (
         <span
-          className={`px-3 py-1 rounded-full text-[11px] font-bold text-white tracking-wide ${bgClass}`}
+          className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wide ${bgClass}`}
         >
           {row.status}
         </span>
