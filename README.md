@@ -55,6 +55,6 @@ A modern, responsive merchant dashboard built with Next.js 14 (App Router), Reac
 - Payment Link Success Screen:
 - Payment Link Detail Page:
 
-##  Incomplete Features
-- Merchant Dashboard UI is align with bepay dashboard, but there are some UI changes as compare to bepay dashboard
+
+
 
