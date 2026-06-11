@@ -56,5 +56,10 @@ A modern, responsive merchant dashboard built with Next.js 14 (App Router), Reac
 - Payment Link Detail Page:
 
 
+## Prioritization Strategy
 
+During the development of this project, features were prioritized to ensure the core business logic remained unblocked:
 
+1. **Payment Link Creation (Highest Priority):** The primary focus was on building the payment link creation flow. It is critical that the main transaction capabilities remain fully functional, as view-only or read-only features should never halt core operations.
+2. **Payment History:** Once the transactional flow was secured, the next focus was developing the payment history interface so users could accurately track and review their past payments.
+3. **Dashboard:** Finally, the dashboard was implemented to aggregate the data and provide a high-level summary of the account metrics and recent activity.
