@@ -4,6 +4,8 @@ import { Modal } from "../../../components/modal";
 import { Toggle } from "../../../components/toggle";
 import { ChevronDownIcon, BtcIcon, EthIcon, SolanaIcon, TonIcon, CopyIcon, FileSuccessIcon } from "../../../components/icons";
 import { addPaymentLink } from "../../../lib/api";
+import { useFormik } from "formik";
+import * as yup from "yup";
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -37,12 +39,6 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [partialPayments, setPartialPayments] = useState(false);
-  const [price, setPrice] = useState("");
-  const [linkFor, setLinkFor] = useState("");
-  
-  const [referenceId, setReferenceId] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [description, setDescription] = useState("");
 
   const [showCopiedToast, setShowCopiedToast] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -51,22 +47,57 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
   const tokenDropdownRef = useRef<HTMLDivElement>(null);
   const networkDropdownRef = useRef<HTMLDivElement>(null);
 
+  const formik = useFormik({
+    initialValues: {
+      price: "",
+      linkFor: "",
+      referenceId: "",
+      expiryDate: "",
+      description: "",
+    },
+    validationSchema: yup.object({
+      price: yup.number().typeError("Price must be a number").positive("Price must be greater than 0").required("Price is required"),
+      linkFor: yup.string().required("Link For is required"),
+      referenceId: yup.string(),
+      expiryDate: yup.date().nullable().min(new Date(), "Expiry must be in the future"),
+      description: yup.string(),
+    }),
+    onSubmit: async (values) => {
+      setIsCreating(true);
+      try {
+        const newLink = await addPaymentLink({
+          currency: selectedToken.name,
+          amount: values.price,
+          paymentTitle: values.linkFor,
+          network: selectedNetwork.name,
+          description: values.description,
+          expiryDate: values.expiryDate,
+          orderId: values.referenceId
+        });
+        setCreatedUrl(newLink.invoiceUrl);
+        setStep('success');
+        onSuccess?.();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsCreating(false);
+      }
+    },
+  });
+
+  const { resetForm } = formik;
   // Reset step when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
         setStep('form');
-        setPrice("");
-        setLinkFor("");
-        setReferenceId("");
-        setExpiryDate("");
-        setDescription("");
+        resetForm();
         setSelectedToken(CRYPTO_OPTIONS[0]);
         setSelectedNetwork(NETWORK_OPTIONS[0]);
+        setShowCopiedToast(false);
       }, 300);
-      setShowCopiedToast(false);
     }
-  }, [isOpen]);
+  }, [isOpen, resetForm]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -81,45 +112,17 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAmountValid = !isNaN(parseFloat(price)) && parseFloat(price) > 0;
-  let isExpiryValid = true;
-  if (expiryDate) {
-    const expiry = new Date(expiryDate).getTime();
-    const now = new Date().getTime();
-    if (expiry <= now) isExpiryValid = false;
-  }
-  
-  const isValid = price.trim() !== "" && linkFor.trim() !== "" && isAmountValid && isExpiryValid;
-
-  const handleCreate = async () => {
-    if (!isValid) return;
-    setIsCreating(true);
-    
-    try {
-      const newLink = await addPaymentLink({
-        currency: selectedToken.name,
-        amount: price,
-        paymentTitle: linkFor,
-        network: selectedNetwork.name,
-        description,
-        expiryDate,
-        orderId: referenceId
-      });
-      setCreatedUrl(newLink.invoiceUrl);
-      setStep('success');
-      onSuccess?.();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
   const handleCopy = () => {
     navigator.clipboard.writeText(createdUrl);
     setShowCopiedToast(true);
     setTimeout(() => setShowCopiedToast(false), 3000);
   };
+
+  const [qrPattern, setQrPattern] = useState<boolean[]>([]);
+
+  useEffect(() => {
+    setQrPattern(Array.from({ length: 64 }).map(() => Math.random() > 0.4));
+  }, []);
 
   return (
     <>
@@ -232,15 +235,20 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
           <div className="relative">
             <input
               type="text"
+              name="price"
               placeholder="0.00"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="w-full p-4 bg-[#F8F9FA] rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              value={formik.values.price}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className={`w-full p-4 bg-[#F8F9FA] rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 ${formik.touched.price && formik.errors.price ? 'border border-red-500' : ''}`}
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-900">
               USD
             </span>
           </div>
+          {formik.touched.price && formik.errors.price ? (
+            <span className="text-xs text-red-500">{formik.errors.price}</span>
+          ) : null}
         </div>
 
         {/* Link For? */}
@@ -248,11 +256,16 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
           <label className="text-sm font-medium text-gray-700">Link For?</label>
           <input
             type="text"
+            name="linkFor"
             placeholder="Enter your reason for this link"
-            value={linkFor}
-            onChange={(e) => setLinkFor(e.target.value)}
-            className="w-full p-4 bg-[#F8F9FA] rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
+            value={formik.values.linkFor}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            className={`w-full p-4 bg-[#F8F9FA] rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 ${formik.touched.linkFor && formik.errors.linkFor ? 'border border-red-500' : ''}`}
           />
+          {formik.touched.linkFor && formik.errors.linkFor ? (
+            <span className="text-xs text-red-500">{formik.errors.linkFor}</span>
+          ) : null}
         </div>
 
         {/* Additional Settings */}
@@ -276,30 +289,41 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
                 <label className="text-sm font-medium text-gray-700">Reference ID</label>
                 <input
                   type="text"
+                  name="referenceId"
                   placeholder="e.g. ORD-1234"
-                  value={referenceId}
-                  onChange={(e) => setReferenceId(e.target.value)}
+                  value={formik.values.referenceId}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   className="w-full p-3 bg-[#F8F9FA] rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
                 />
+                {formik.touched.referenceId && formik.errors.referenceId ? (
+                  <span className="text-xs text-red-500">{formik.errors.referenceId}</span>
+                ) : null}
               </div>
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">Expiry Date</label>
                 <input
                   type="datetime-local"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full p-3 bg-[#F8F9FA] rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  name="expiryDate"
+                  value={formik.values.expiryDate}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className={`w-full p-3 bg-[#F8F9FA] rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 ${formik.touched.expiryDate && formik.errors.expiryDate ? 'border border-red-500' : ''}`}
                 />
-                {!isExpiryValid && <span className="text-xs text-red-500">Expiry must be in the future.</span>}
+                {formik.touched.expiryDate && formik.errors.expiryDate ? (
+                  <span className="text-xs text-red-500">{formik.errors.expiryDate}</span>
+                ) : null}
               </div>
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">Internal Notes / Description</label>
                 <textarea
+                  name="description"
                   placeholder="Details about this payment"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={formik.values.description}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   className="w-full p-3 bg-[#F8F9FA] rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 resize-none h-20"
                 />
               </div>
@@ -310,9 +334,9 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
         {/* Create Button */}
         <div className="mt-4">
           <button
-            onClick={handleCreate}
-            disabled={!isValid || isCreating}
-            className={`w-full py-3.5 font-medium rounded-full transition-all duration-200 flex items-center justify-center ${isValid && !isCreating
+            onClick={() => formik.handleSubmit()}
+            disabled={!formik.isValid || !formik.dirty || isCreating}
+            className={`w-full py-3.5 font-medium rounded-full transition-all duration-200 flex items-center justify-center ${formik.isValid && formik.dirty && !isCreating
                 ? "bg-black text-white cursor-pointer hover:bg-gray-800"
                 : "bg-[#F3F4F6] text-gray-400 cursor-not-allowed"
               }`}
@@ -332,8 +356,8 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
             <div className="w-48 h-48 bg-white border border-gray-200 rounded-xl shadow-sm mb-6 flex items-center justify-center relative overflow-hidden">
               <div className="absolute inset-2 grid grid-cols-8 grid-rows-8 gap-1 opacity-80">
                  {/* Decorative mock QR pattern */}
-                 {Array.from({ length: 64 }).map((_, i) => (
-                    <div key={i} className={`${Math.random() > 0.4 ? 'bg-black rounded-sm' : 'bg-transparent'}`} />
+                 {qrPattern.map((isBlack, i) => (
+                    <div key={i} className={`${isBlack ? 'bg-black rounded-sm' : 'bg-transparent'}`} />
                  ))}
                  {/* Corner blocks */}
                  <div className="absolute top-0 left-0 w-10 h-10 border-4 border-black rounded-md" />
@@ -350,7 +374,7 @@ export const CreatePaymentModal = ({ isOpen, onClose, onSuccess }: CreatePayment
                 <div className="flex flex-col gap-1">
                   <span className="text-sm text-gray-500">Total Amount</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xl font-bold text-gray-900">{price} {selectedToken.name}</span>
+                    <span className="text-xl font-bold text-gray-900">{formik.values.price} {selectedToken.name}</span>
                     <div className="flex items-center gap-1">
                       <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center" title={selectedToken.name}>
                         {React.cloneElement(selectedToken.icon as React.ReactElement<{ className?: string }>, { className: "w-4 h-4" })}
